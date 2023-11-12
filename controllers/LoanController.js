@@ -28,7 +28,7 @@ const create_loan = (req, res) => {
         tin: req.body.tin,
         currentstatus: req.body.currentstatus,
         updatetime: req.body.updatetime,
-        loanId:req.body.loanId
+        loanId: req.body.loanId,
       });
       newData
         .save()
@@ -67,17 +67,19 @@ const get_all_loan = (req, res) => {
   });
 };
 
-//cancel loan
+//update loan
 
-const cancel_loan = (req, res) => {
+const update_loan = (req, res) => {
   validate_token({
     req,
     res,
     fn: () => {
-      LoanModel.updateOne(
-        { loanId: req.params.id },
-        { $set: { updatetime: req.body.updatetime, status: req.body.status } }
-      )
+      let payload = {
+        ...(req.body.updatetime && { updatetime: req.body.updatetime }),
+        ...(req.body.status && { status: req.body.status }),
+        ...(req.body.currentstatus && { currentstatus: req.body.currentstatus }),
+      };
+      LoanModel.updateOne({ loanId: req.params.id }, { $set: { ...payload } })
         .then((result) => {
           res.send({ message: "Status Updated", result, success: true });
         })
@@ -91,5 +93,5 @@ const cancel_loan = (req, res) => {
 module.exports = {
   create_loan,
   get_all_loan,
-  cancel_loan
+  update_loan,
 };

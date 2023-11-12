@@ -1,8 +1,8 @@
 const mongoose = require("mongoose");
 
-const userSchema = mongoose.Schema;
+const AdminSchema = mongoose.Schema;
 
-const userSchemaDetails = new userSchema({
+const AdminSchemaDetails = new AdminSchema({
   userName: {
     type: String,
     required: true,
@@ -13,10 +13,9 @@ const userSchemaDetails = new userSchema({
   },
   jwt: {
     type: String,
-    required: true,
   },
 });
 
-const UserModel = mongoose.model("LoginCollection", userSchemaDetails);
+const AdminModel = mongoose.model("AdminCollection", AdminSchemaDetails);
 
-module.exports = UserModel;
+module.exports = AdminModel;

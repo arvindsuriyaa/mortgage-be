@@ -1,6 +1,7 @@
 const RegisterModel = require("../models/RegisterModel.js");
 const jwt = require("jsonwebtoken");
 const { validate_token } = require("../utils.js");
+const AdminModel = require("../models/adminModel.js");
 
 const throwError = (res, response) => {
   res.status(500).send({ error: `response is ${response}` });
@@ -81,34 +82,66 @@ const forget_password = async (req, res) => {
 };
 
 const login = async (req, res) => {
-  let data = await RegisterModel.find({
-    custid: req.body.custid,
-    password: req.body.password,
-  });
-  if (data?.length) {
-    const payload = {
+  if (req?.body?.admin) {
+    let data = await AdminModel.find({
+      userName: req.body.userName,
+      password: req.body.password,
+    });
+    if (data?.length) {
+      const payload = {
+        custid: req.body.custid,
+        password: req.body.password,
+      };
+      const secret = "mortgage-admin-access";
+      const token = jwt.sign(payload, secret, { expiresIn: "1h" });
+
+      AdminModel.updateOne(
+        { userName: req.body.userName, password: req.body.password },
+        { $set: { jwt: token } }
+      )
+        .then((result) => {
+          res.send({
+            userName: req.body.userName,
+            password: req.body.password,
+            token,
+            success: true,
+          });
+        })
+        .catch((err) => {
+          res.send({ message: "Something went wrong", success: false });
+        });
+      return;
+    }
+  } else {
+    let data = await RegisterModel.find({
       custid: req.body.custid,
       password: req.body.password,
-    };
-    const secret = "mortgage-access";
-    const token = jwt.sign(payload, secret, { expiresIn: "1h" });
+    });
+    if (data?.length) {
+      const payload = {
+        custid: req.body.custid,
+        password: req.body.password,
+      };
+      const secret = "mortgage-access";
+      const token = jwt.sign(payload, secret, { expiresIn: "1h" });
 
-    RegisterModel.updateOne(
-      { custid: req.body.custid, password: req.body.password },
-      { $set: { jwt: token } }
-    )
-      .then((result) => {
-        res.send({
-          custid: req.body.custid,
-          password: req.body.password,
-          token,
-          success: true,
+      RegisterModel.updateOne(
+        { custid: req.body.custid, password: req.body.password },
+        { $set: { jwt: token } }
+      )
+        .then((result) => {
+          res.send({
+            custid: req.body.custid,
+            password: req.body.password,
+            token,
+            success: true,
+          });
+        })
+        .catch((err) => {
+          res.send({ message: "Something went wrong", success: false });
         });
-      })
-      .catch((err) => {
-        res.send({ message: "Something went wrong", success: false });
-      });
-    return;
+      return;
+    }
   }
   return res.send({ message: "User Not Found", success: false });
 };
@@ -129,10 +162,42 @@ const get_user_details = async (req, res) => {
   });
 };
 
+const add_admin = async (req, res) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  let data = await AdminModel.find({
+    userName: req.body.userName,
+  });
+
+  if (data?.length) {
+    return res.send({
+      message: "This Admin Already exist",
+      success: false,
+    });
+  }
+  const newData = new AdminModel({
+    userName: req.body.userName,
+    password: req.body.password,
+  });
+  newData
+    .save()
+    .then((result) => {
+      if (!result) {
+        return throwError(res, result);
+      }
+      res.send({
+        message: "Admin Registeration completed Successfully",
+        success: true,
+      });
+    })
+    .catch((err) => {
+      res.status(500).send(err);
+    });
+};
 module.exports = {
   create_user,
   forget_password,
   validate_user,
   login,
   get_user_details,
+  add_admin
 };

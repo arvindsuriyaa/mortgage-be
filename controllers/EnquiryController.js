@@ -1,4 +1,5 @@
 const EnquiryModel = require("../models/EnquiryModel.js");
+const { validate_token } = require("../utils.js");
 
 const throwError = (res, response) => {
   res.status(500).send({ error: `response is ${response}` });
@@ -27,6 +28,25 @@ const create_enquiry = (req, res) => {
     });
 };
 
+//get all enquiry
+const get_all_enquiry = (req, res) => {
+  validate_token({
+    req,
+    res,
+    fn: () => {
+      EnquiryModel.find()
+        .then((result) => {
+          if (!result) {
+            return throwError(res, result);
+          }
+          res.send({ result, success: true });
+        })
+        .catch((err) => res.status(500).send(err));
+    },
+  });
+};
+
 module.exports = {
   create_enquiry,
+  get_all_enquiry,
 };
