@@ -1,13 +1,28 @@
 const RegisterModel = require("../models/RegisterModel.js");
 const jwt = require("jsonwebtoken");
+const { validate_token } = require("../utils.js");
 
 const throwError = (res, response) => {
   res.status(500).send({ error: `response is ${response}` });
 };
 
 // Create enquiry
-const create_user = (req, res) => {
+const create_user = async (req, res) => {
   res.header("Access-Control-Allow-Origin", "*");
+  let dataWithCustId = await RegisterModel.find({
+    custid: req.body.custid,
+  });
+
+  let dataWithEmailId = await RegisterModel.find({
+    email: req.body.email,
+  });
+
+  if (dataWithCustId?.length || dataWithEmailId?.length) {
+    return res.send({
+      message: "User Already exist",
+      success: false,
+    });
+  }
   const newData = new RegisterModel({
     name: req.body.name,
     address: req.body.address,
@@ -30,7 +45,10 @@ const create_user = (req, res) => {
       if (!result) {
         return throwError(res, result);
       }
-      res.send({ message: "User Registeration completed Successfully" });
+      res.send({
+        message: "User Registeration completed Successfully",
+        success: true,
+      });
     })
     .catch((err) => {
       res.status(500).send(err);
@@ -44,9 +62,9 @@ const validate_user = async (req, res) => {
     pin: req.body.pin,
   });
   if (data?.length) {
-    return res.send({ message: "User Found", isUserExist: true });
+    return res.send({ message: "User Found", success: true });
   }
-  return res.send({ message: "User Not Found", isUserExist: false });
+  return res.send({ message: "User Not Found", success: false });
 };
 
 const forget_password = async (req, res) => {
@@ -64,29 +82,27 @@ const forget_password = async (req, res) => {
 
 const login = async (req, res) => {
   let data = await RegisterModel.find({
-    email: req.body.email,
+    custid: req.body.custid,
     password: req.body.password,
   });
   if (data?.length) {
     const payload = {
-      email: req.body.email,
+      custid: req.body.custid,
       password: req.body.password,
     };
     const secret = "mortgage-access";
-    const token = jwt.sign(payload, secret, { expiresIn: "2s" });
-    validate_token(
-      "eyJhbGciOiJIUzI1NissIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFydmluZHMyNjA1QGdtYWlsLmNvbSIsInBhc3N3b3JkIjoiOTg3NiIsImlhdCI6MTY5OTQ3MDg4MiwiZXhwIjoxNjk5NDc0NDgyfQ.RU1EDsJ4nii1N3xe0T4X02zzMImPN8aGpnFWsF5yuCk"
-    );
+    const token = jwt.sign(payload, secret, { expiresIn: "1h" });
+
     RegisterModel.updateOne(
-      { email: req.body.email, password: req.body.password },
+      { custid: req.body.custid, password: req.body.password },
       { $set: { jwt: token } }
     )
       .then((result) => {
         res.send({
-          email: req.body.email,
+          custid: req.body.custid,
           password: req.body.password,
           token,
-          isUserExist: true,
+          success: true,
         });
       })
       .catch((err) => {
@@ -94,18 +110,23 @@ const login = async (req, res) => {
       });
     return;
   }
-  return res.send({ message: "User Not Found", isUserExist: false });
+  return res.send({ message: "User Not Found", success: false });
 };
 
-const validate_token = async (token) => {
-  try {
-    const decodedToken = jwt.verify(token, "mortgage-access");
-    if (decodedToken) {
-      return true;
-    }
-  } catch (error) {
-    return false;
-  }
+const get_user_details = async (req, res) => {
+  validate_token({
+    req,
+    res,
+    fn: async () => {
+      let data = await RegisterModel.find({
+        custid: req.params.id,
+      });
+      if (data?.length) {
+        return res.send({ data, success: true });
+      }
+      return res.send({ message: "User Does not exist", success: true });
+    },
+  });
 };
 
 module.exports = {
@@ -113,5 +134,5 @@ module.exports = {
   forget_password,
   validate_user,
   login,
-  validate_token,
+  get_user_details,
 };

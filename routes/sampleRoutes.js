@@ -3,6 +3,7 @@ const Controllers = require("../controllers/controllers");
 const userController = require("../controllers/adminController");
 const EnquiryController = require("../controllers/EnquiryController");
 const RegisterController = require("../controllers/RegisterController");
+const LoanController = require("../controllers/LoanController");
 
 const router = express.Router();
 
@@ -34,5 +35,12 @@ router.post("/api/register/validate", RegisterController.validate_user);
 //login
 router.post("/login", RegisterController.login);
 
+//dashboard
+router.get("/api/cust/get/:id", RegisterController.get_user_details);
+
+//loan
+router.post("/api/loan/add", LoanController.create_loan);
+router.get("/api/loan/get", LoanController.get_all_loan);
+router.put("/api/loan/update/:id", LoanController.cancel_loan);
 
 module.exports = router;
